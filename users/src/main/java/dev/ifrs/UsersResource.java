@@ -41,9 +41,9 @@ public class UsersResource {
     @Path("/login")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_PLAIN)
-    public Uni<String> loginUser(@FormParam("email") String email,
+    public Uni<String> loginUser(
+            @FormParam("email") String email,
             @FormParam("password") String password) {
-        Log.info("Logging in user with email: " + email);
         return User.find("email = ?1 and password = ?2", email, password).firstResult()
                 .onItem().ifNotNull().transform(item -> {
                     User user = (User) item;
@@ -61,14 +61,14 @@ public class UsersResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.APPLICATION_JSON)
     @WithTransaction
-    public Uni<User> registerUser(@FormParam("name") String name,
+    public Uni<User> registerUser(
+            @FormParam("name") String name,
             @FormParam("email") String email,
             @FormParam("password") String password,
             @FormParam("confirmPassword") String confirmPassword) {
         if (!password.equals(confirmPassword)) {
             throw new IllegalArgumentException("Passwords do not match");
         }
-        Log.info("Creating user: " + name + " with email: " + email);
         User user = new User();
         user.setName(name);
         user.setEmail(email);

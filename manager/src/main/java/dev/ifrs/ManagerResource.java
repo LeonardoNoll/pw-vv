@@ -67,6 +67,35 @@ public class ManagerResource {
         return userClient.loginUser(email, password);
     }
 
+    @GET
+    @Path("/users/list")
+    @RolesAllowed("Admin")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Uni<List<User>> getUsers() {
+        Log.info("Fetching user list for manager");
+        return userClient.listUser();
+    }
+
+    @POST
+    @Path("/users/update")
+    @RolesAllowed("Admin")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Uni<User> updateUser(User user) {
+        Log.info("Updating user through manager: " + user.getName() + " with email: " + user.getEmail());
+        return userClient.updateUser(user);
+    }
+
+    @POST
+    @Path("/users/delete")
+    @RolesAllowed("Admin")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Uni<User> deleteUser(User user) {
+        Log.info("Deleting user through manager: " + user.getName() + " with email: " + user.getEmail());
+        return userClient.deleteUser(user);
+    }
+
     // BOOK MANAGEMENT
     @GET
     @Path("/list")
