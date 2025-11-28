@@ -23,7 +23,7 @@ public class BookResource {
 
     @GET
     @Path("/list")
-    @PermitAll
+    @RolesAllowed("User")
     @Counted(displayName = "getBooks")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Book> getBooks() {
