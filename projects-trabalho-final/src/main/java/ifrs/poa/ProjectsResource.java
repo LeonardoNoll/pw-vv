@@ -1,13 +1,11 @@
 package ifrs.poa;
 
 import java.net.URI;
-import java.util.List;
 
 import ifrs.poa.model.Project;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
-import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;

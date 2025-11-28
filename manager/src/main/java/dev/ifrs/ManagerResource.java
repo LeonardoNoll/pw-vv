@@ -16,10 +16,13 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -114,6 +117,15 @@ public class ManagerResource {
     }
 
     // Project MANAGEMENT
+    @GET
+    @Path("/projects/list")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("User")
+    public Uni<Response> getProjects() {
+        Log.info("Fetching project list for manager");
+        return projectClient.list();
+    }
+
     @POST
     @Path("/projects/create")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -122,5 +134,33 @@ public class ManagerResource {
     public Uni<Response> createProject(Project project) {
         Log.info("Creating project through manager: " + project.getName());
         return projectClient.create(project);
+    }
+
+    @PUT
+    @Path("/projects/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("User")
+    public Uni<Response> updateProject(@PathParam("id") Long id, Project payload) {
+        Log.info("Updating project through manager with ID: " + id);
+        return projectClient.update(id, payload);
+    }
+
+    @DELETE
+    @Path("/projects/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("User")
+    public Uni<Response> deleteProject(@PathParam("id") Long id) {
+        Log.info("Deleting project through manager with ID: " + id);
+        return projectClient.delete(id);
+    }
+
+    @GET
+    @Path("/projects/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("User")
+    public Uni<Response> getProjectById(@PathParam("id") Long id) {
+        Log.info("Fetching project details for manager with ID: " + id);
+        return projectClient.getProjectById(id);
     }
 }
