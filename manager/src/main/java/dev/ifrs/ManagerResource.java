@@ -12,6 +12,8 @@ import dev.ifrs.model.Project;
 import dev.ifrs.model.User;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Fallback;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -29,11 +31,6 @@ import jakarta.ws.rs.core.Response;
 
 @Path("/manager")
 public class ManagerResource {
-
-    @Inject
-    @RestClient
-    BookClient bookClient;
-
     @Inject
     @RestClient
     UserClient userClient;
@@ -45,12 +42,18 @@ public class ManagerResource {
     // USER MANAGEMENT
     @POST
     @Path("/jwt")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_PLAIN)
     @PermitAll
-    public String getJwt(User user) {
+    @Retry(maxRetries = 3, delay = 2000)
+    public String getJwt(@FormParam("email") String email, @FormParam("password") String password) {
         Log.info("Generating JWT for manager");
-        return userClient.getToken(user);
+        if (email == null || password == null) {
+            throw new jakarta.ws.rs.WebApplicationException("Missing parameters", Response.Status.BAD_REQUEST);
+        }
+        User u = new User();
+        u.setEmail(email);
+        return userClient.getToken(u);
     }
 
     @POST
@@ -58,12 +61,14 @@ public class ManagerResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @PermitAll
-    public Uni<User> registerUser(@FormParam("name") String name,
+    @Retry(maxRetries = 3, delay = 2000)
+    public Uni<Response> registerUser(@FormParam("username") String name,
             @FormParam("email") String email,
             @FormParam("password") String password,
             @FormParam("confirmPassword") String confirmPassword) {
         Log.info("Registering user through manager: " + name + " with email: " + email);
-        return userClient.registerUser(name, email, password, confirmPassword);
+        return userClient.registerUser(name, email, password, confirmPassword)
+                .onItem().transform(u -> Response.status(Response.Status.CREATED).entity(u).build());
     }
 
     @POST
@@ -71,6 +76,7 @@ public class ManagerResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_PLAIN)
     @PermitAll
+    @Retry(maxRetries = 3, delay = 2000)
     public Uni<String> loginUser(@FormParam("email") String email,
             @FormParam("password") String password) {
         Log.info("Logging in user through manager with email: " + email);
@@ -79,8 +85,9 @@ public class ManagerResource {
 
     @GET
     @Path("/users/list")
-    // @RolesAllowed("Admin")
+    @RolesAllowed("Admin")
     @Produces(MediaType.APPLICATION_JSON)
+    @Retry(maxRetries = 3, delay = 2000)
     public Uni<List<User>> getUsers() {
         Log.info("Fetching user list for manager");
         return userClient.listUser();
@@ -91,6 +98,7 @@ public class ManagerResource {
     @RolesAllowed("Admin")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Retry(maxRetries = 3, delay = 2000)
     public Uni<User> updateUser(User user) {
         Log.info("Updating user through manager: " + user.getName() + " with email: " + user.getEmail());
         return userClient.updateUser(user);
@@ -101,19 +109,10 @@ public class ManagerResource {
     @RolesAllowed("Admin")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Retry(maxRetries = 3, delay = 2000)
     public Uni<User> deleteUser(User user) {
         Log.info("Deleting user through manager: " + user.getName() + " with email: " + user.getEmail());
         return userClient.deleteUser(user);
-    }
-
-    // BOOK MANAGEMENT
-    @GET
-    @Path("/list")
-    @RolesAllowed("User")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<Book> getBooks() {
-        Log.info("Fetching book list for manager");
-        return bookClient.listBooks();
     }
 
     // Project MANAGEMENT
@@ -121,9 +120,20 @@ public class ManagerResource {
     @Path("/projects/list")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("User")
+    @Retry(maxRetries = 3, delay = 2000)
     public Uni<Response> getProjects() {
         Log.info("Fetching project list for manager");
         return projectClient.list();
+    }
+
+    @GET
+    @Path("/list")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("User")
+    public Uni<Response> getBooks() {
+        Log.info("Fetching book list for manager");
+        java.util.List<dev.ifrs.model.Book> books = bookClient.listBooks();
+        return Uni.createFrom().item(Response.ok(books).build());
     }
 
     @POST
@@ -131,6 +141,8 @@ public class ManagerResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("User")
+    @Retry(maxRetries = 3, delay = 2000)
+    @Fallback(fallbackMethod = "createProjectFallback")
     public Uni<Response> createProject(Project project) {
         Log.info("Creating project through manager: " + project.getName());
         return projectClient.create(project);
@@ -141,6 +153,8 @@ public class ManagerResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("User")
+    @Retry(maxRetries = 3, delay = 2000)
+    @Fallback(fallbackMethod = "projectAlterationFallback")
     public Uni<Response> updateProject(@PathParam("id") Long id, Project payload) {
         Log.info("Updating project through manager with ID: " + id);
         return projectClient.update(id, payload);
@@ -150,6 +164,8 @@ public class ManagerResource {
     @Path("/projects/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("User")
+    @Retry(maxRetries = 3, delay = 2000)
+    @Fallback(fallbackMethod = "projectAlterationFallback")
     public Uni<Response> deleteProject(@PathParam("id") Long id) {
         Log.info("Deleting project through manager with ID: " + id);
         return projectClient.delete(id);
@@ -159,8 +175,35 @@ public class ManagerResource {
     @Path("/projects/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("User")
+    @Retry(maxRetries = 3, delay = 2000)
     public Uni<Response> getProjectById(@PathParam("id") Long id) {
         Log.info("Fetching project details for manager with ID: " + id);
         return projectClient.getProjectById(id);
+    }
+
+    public Uni<Response> createProjectFallback(Project project) {
+        Log.warn("Fallback: Unable to create project at this time.");
+        Log.warn("Project details: " + project);
+        Response resp = Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                .entity("Unable to create project. Please try again later.")
+                .build();
+        return Uni.createFrom().item(resp);
+    }
+
+    public Uni<Response> projectAlterationFallback(Long id) {
+        Log.warn("Fallback: Unable to alter project with ID: " + id + " at this time.");
+        Response resp = Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                .entity("Unable to alter project. Please try again later.")
+                .build();
+        return Uni.createFrom().item(resp);
+    }
+
+    public Uni<Response> projectAlterationFallback(Long id, Project payload) {
+        Log.warn("Fallback: Unable to alter project with ID: " + id + " at this time.");
+        Log.warn("Payload: " + payload);
+        Response resp = Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                .entity("Unable to alter project. Please try again later.")
+                .build();
+        return Uni.createFrom().item(resp);
     }
 }
