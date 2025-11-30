@@ -2,8 +2,6 @@ package dev.ifrs.model;
 
 import io.quarkus.hibernate.reactive.panache.PanacheEntity;
 import jakarta.persistence.Entity;
-import lombok.Getter;
-import lombok.Setter;
 
 // @Getter @Setter
 @Entity

@@ -2,18 +2,16 @@ package dev.ifrs;
 
 import java.util.List;
 
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
-import dev.ifrs.client.BookClient;
 import dev.ifrs.client.ProjectClient;
 import dev.ifrs.client.UserClient;
-import dev.ifrs.model.Book;
 import dev.ifrs.model.Project;
 import dev.ifrs.model.User;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
-import org.eclipse.microprofile.faulttolerance.Retry;
-import org.eclipse.microprofile.faulttolerance.Fallback;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -26,6 +24,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -49,10 +48,11 @@ public class ManagerResource {
     public String getJwt(@FormParam("email") String email, @FormParam("password") String password) {
         Log.info("Generating JWT for manager");
         if (email == null || password == null) {
-            throw new jakarta.ws.rs.WebApplicationException("Missing parameters", Response.Status.BAD_REQUEST);
+            throw new WebApplicationException("Missing parameters", Response.Status.BAD_REQUEST);
         }
         User u = new User();
         u.setEmail(email);
+        u.setPassword(password);
         return userClient.getToken(u);
     }
 
@@ -124,16 +124,6 @@ public class ManagerResource {
     public Uni<Response> getProjects() {
         Log.info("Fetching project list for manager");
         return projectClient.list();
-    }
-
-    @GET
-    @Path("/list")
-    @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed("User")
-    public Uni<Response> getBooks() {
-        Log.info("Fetching book list for manager");
-        java.util.List<dev.ifrs.model.Book> books = bookClient.listBooks();
-        return Uni.createFrom().item(Response.ok(books).build());
     }
 
     @POST
