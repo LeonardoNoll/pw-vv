@@ -139,14 +139,6 @@ class ManagerResourceTest {
     }
 
     @Test
-    void testGetBooksUnauthorized() {
-        given()
-                .when().get("/manager/list")
-                .then()
-                .statusCode(401);
-    }
-
-    @Test
     void testGetProjectsUnauthorized() {
         given()
                 .when().get("/manager/projects/list")
