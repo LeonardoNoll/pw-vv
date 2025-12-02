@@ -1,6 +1,7 @@
 package dev.ifrs;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 import org.eclipse.microprofile.faulttolerance.Fallback;
 import org.eclipse.microprofile.faulttolerance.Retry;

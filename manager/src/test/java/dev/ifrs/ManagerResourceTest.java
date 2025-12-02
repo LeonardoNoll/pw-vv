@@ -1,15 +1,21 @@
 
 package dev.ifrs;
 
+import static io.restassured.RestAssured.given;
+
+import java.util.logging.Logger;
+
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import dev.ifrs.model.User;
 import io.quarkus.test.junit.QuarkusTest;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
 
 @QuarkusTest
 class ManagerResourceTest {
+    private static Logger logger = Logger.getLogger("AnnotationsTest");
+
     private static final String USERNAME_PARAM = "username";
     private static final String EMAIL_PARAM = "email";
     private static final String PASSWORD_PARAM = "password";
@@ -19,9 +25,17 @@ class ManagerResourceTest {
     private static final String TEST_USER_EMAIL = "testuser@example.com";
     private static final String TEST_USER_PASSWORD = "testpass";
 
+    private static final User unauthorizedUser = new User();
+    static {
+        unauthorizedUser.setName("name");
+        unauthorizedUser.setEmail("e@example.com");
+        unauthorizedUser.setPassword("p");
+    }
+
     @BeforeAll
     static void setup() {
         try {
+            logger.info("Setting up test user");
             given()
                     .formParam(USERNAME_PARAM, TEST_USER_NAME)
                     .formParam(EMAIL_PARAM, TEST_USER_EMAIL)
@@ -36,7 +50,9 @@ class ManagerResourceTest {
 
     // User Management Tests
     @Test
+    @DisplayName("Test User Registration")
     void testUserRegistration() {
+        logger.info("Testing user registration");
         given()
                 .formParam(USERNAME_PARAM, TEST_USER_NAME)
                 .formParam(EMAIL_PARAM, TEST_USER_EMAIL)
@@ -48,6 +64,7 @@ class ManagerResourceTest {
     }
 
     @Test
+    @DisplayName("Test User Registration With Unmatched Passwords")
     void testUserRegistrationUnmatchedPasswords() {
         given()
                 .formParam(EMAIL_PARAM, TEST_USER_EMAIL)
@@ -59,6 +76,7 @@ class ManagerResourceTest {
     }
 
     @Test
+    @DisplayName("Test User Login")
     void testUserLogin() {
         given()
                 .formParam(EMAIL_PARAM, TEST_USER_EMAIL)
@@ -69,6 +87,7 @@ class ManagerResourceTest {
     }
 
     @Test
+    @DisplayName("Test User Login With Invalid Credentials")
     void testUserLoginInvalid() {
         given()
                 .formParam(EMAIL_PARAM, TEST_USER_EMAIL)
@@ -81,6 +100,7 @@ class ManagerResourceTest {
     // Additional tests
 
     @Test
+    @DisplayName("Test User Register With Missing Fields")
     void testRegisterMissingFields() {
         given()
                 .formParam(USERNAME_PARAM, "incomplete")
@@ -91,6 +111,7 @@ class ManagerResourceTest {
     }
 
     @Test
+    @DisplayName("Test User Login With Missing Parameters")
     void testLoginMissingParams() {
         given()
                 .formParam(EMAIL_PARAM, "no-password@example.com")
@@ -100,6 +121,7 @@ class ManagerResourceTest {
     }
 
     @Test
+    @DisplayName("Test JWT Generation With Missing Body")
     void testJwtMissingBody() {
         given()
                 .when().post("/manager/jwt")
@@ -109,6 +131,7 @@ class ManagerResourceTest {
 
     // Endpoints protected by roles: expect unauthorized when not authenticated
     @Test
+    @DisplayName("Test Get Users Unauthorized")
     void testGetUsersUnauthorized() {
         given()
                 .when().get("/manager/users/list")
@@ -117,11 +140,11 @@ class ManagerResourceTest {
     }
 
     @Test
+    @DisplayName("Test Update User Unauthorized")
     void testUpdateUserUnauthorized() {
-        String payload = "{\"name\":\"name\",\"email\":\"e@example.com\",\"password\":\"p\"}";
         given()
                 .contentType("application/json")
-                .body(payload)
+                .body(unauthorizedUser)
                 .when().post("/manager/users/update")
                 .then()
                 .statusCode(401);
@@ -129,10 +152,9 @@ class ManagerResourceTest {
 
     @Test
     void testDeleteUserUnauthorized() {
-        String payload = "{\"name\":\"name\",\"email\":\"e@example.com\"}";
         given()
                 .contentType("application/json")
-                .body(payload)
+                .body(unauthorizedUser)
                 .when().post("/manager/users/delete")
                 .then()
                 .statusCode(401);

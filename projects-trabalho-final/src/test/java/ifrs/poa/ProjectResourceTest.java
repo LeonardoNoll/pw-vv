@@ -16,7 +16,10 @@ class ProjectResourceTest {
 
     @BeforeAll
     void setup() {
-        Project baseProject = new Project("Projeto inicial", "Base", Status.FINISHED);
+        Project baseProject = new Project();
+        baseProject.setName("Projeto inicial");
+        baseProject.setDescription("Base");
+        baseProject.setStatus(Status.FINISHED);
         given()
                 .body(baseProject)
                 .header("Content-Type", "application/json")
@@ -26,7 +29,10 @@ class ProjectResourceTest {
 
     @Test
     void createSuccess() {
-        Project successfullProject = new Project("Projeto teste", "testando endpoint", Status.ACTIVE);
+        Project successfullProject = new Project();
+        successfullProject.setName("Projeto Teste");
+        successfullProject.setDescription("Descrição do projeto de teste");
+        successfullProject.setStatus(Status.ACTIVE);
         given()
                 .body(successfullProject)
                 .header("Content-Type", "application/json")
